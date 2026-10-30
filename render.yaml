@@ -1,0 +1,15 @@
+# Render Blueprint : New + > Blueprint > choisir ce dépôt et la branche claude/deploy-code-e5kf4o
+services:
+  - type: web
+    name: isotestforge
+    runtime: docker
+    plan: free
+    rootDir: isotestforge-app
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ITF_BASIC_AUTH
+        sync: false          # saisi dans le tableau de bord, ex. testeur:MotDePasseLong
+      - key: ANTHROPIC_API_KEY
+        sync: false          # facultatif

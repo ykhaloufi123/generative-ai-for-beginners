@@ -1,0 +1,23 @@
+# Comportement du simulateur hôte (émetteur + switch simplifiés)
+host_spec: SWITCH_SIM
+listen: 0.0.0.0
+port: 8583
+verify_mac: true
+verify_pin: true
+verify_cvv: true
+verify_arqc: true          # mettre à false si l'ARQC de votre version de jPOS diffère
+verify_expiry: true
+pin_tries_limit: 3
+supported_processing_codes: ["00", "01", "20", "31"]
+default_delay_ms: 0
+approve_unknown_terminals: true
+trace_file: data/traces/simulator.jsonl   # échanges masqués, réutilisables par l'import de traces
+# Règles additionnelles évaluées avant les contrôles standard (premier match gagnant)
+# Conditions : mti, pan_prefix, amount_eq, amount_gt, tid, field.<n> ; actions : respond (DE39), delay_ms, drop
+rules:
+  - name: Montant 13,13 = appeler l'émetteur
+    when: {amount_eq: "000000001313"}
+    respond: "01"
+  - name: Terminal bloqué
+    when: {tid: "TPE99999"}
+    respond: "03"

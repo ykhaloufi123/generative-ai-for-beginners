@@ -1,0 +1,11 @@
+# Clés de TEST uniquement (jamais de clés de production). En dehors d'un poste local,
+# utiliser des références : "env:ITF_ZPK" ou "vault:secret/data/itf#zpk".
+- id: KS_TEST_01
+  description: Jeu de clés de test partagé avec le simulateur
+  zmk: "5425753D376E67AB0E6E6BAD046D7F8C"
+  zpk: "FEF1CE0E1004D610527C7C67945D0237"
+  tak: "DC4370C72976464A5EE9F4A78004520B"
+  imk_ac: "DC20A226C82F20209BFB2091BA438097"
+  cvk: "F1B5707C02CE8AD54F4AEA26D69B98C2"
+  pvk: "754FFBBC67348052D5320EB5F7C8A8EA"
+  mac_algorithm: retail

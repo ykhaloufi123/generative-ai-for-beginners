@@ -1,0 +1,86 @@
+# Profils carte de TEST. PIN, clés et cryptogrammes sont fictifs.
+- id: VISA_EMV_PIN
+  scheme: VISA
+  pan: "4761730000000011"
+  expiry: "3012"
+  service_code: "201"
+  pin: "1234"
+  card_type: emv
+  cvm: online_pin
+  keyset: KS_TEST_01
+  emv: {iad: "06010A03A00000", atc: "0010"}
+  tags: [smoke]
+  description: Visa EMV contact, PIN online, CVN10
+- id: VISA_EMV_CVN18
+  scheme: VISA
+  pan: "4761730000000029"
+  expiry: "3012"
+  card_type: emv
+  cvm: online_pin
+  keyset: KS_TEST_01
+  emv: {iad: "06011203A00000", atc: "0020"}
+  description: Visa EMV contact, CVN18 (clé de session commune)
+- id: VISA_CTLS
+  scheme: VISA
+  pan: "4761730000000037"
+  expiry: "3012"
+  card_type: contactless
+  cvm: no_cvm
+  keyset: KS_TEST_01
+  emv: {iad: "06010A03A00000", atc: "0030", aip: "2000"}
+  description: Visa sans contact
+- id: VISA_MAG
+  scheme: VISA
+  pan: "4761730000000045"
+  expiry: "3012"
+  service_code: "101"
+  card_type: magstripe
+  cvm: online_pin
+  keyset: KS_TEST_01
+  description: Visa piste magnétique
+- id: VISA_LOST
+  scheme: VISA
+  pan: "4761730000000052"
+  expiry: "3012"
+  card_type: emv
+  keyset: KS_TEST_01
+  status: lost
+  tags: [negative]
+  description: Carte déclarée perdue (refus attendu 41)
+- id: MC_EMV_PIN
+  scheme: MASTERCARD
+  pan: "5413330000000019"
+  expiry: "3112"
+  card_type: emv
+  cvm: online_pin
+  keyset: KS_TEST_01
+  emv: {iad: "06010A03A00000", atc: "0100", aid: "A0000000041010"}
+  tags: [smoke]
+  description: Mastercard EMV contact, PIN online
+- id: MC_CTLS
+  scheme: MASTERCARD
+  pan: "5413330000000027"
+  expiry: "3112"
+  card_type: contactless
+  cvm: no_cvm
+  keyset: KS_TEST_01
+  emv: {atc: "0200", aid: "A0000000041010", aip: "1980"}
+  description: Mastercard sans contact
+- id: MC_LOW_BALANCE
+  scheme: MASTERCARD
+  pan: "5413330000000035"
+  expiry: "3112"
+  card_type: emv
+  keyset: KS_TEST_01
+  balance: 50
+  tags: [negative]
+  description: Solde faible (refus 51 au-delà de 50)
+- id: LOCAL_MAG
+  scheme: LOCAL
+  pan: "6000000000000015"
+  expiry: "2912"
+  service_code: "120"
+  card_type: magstripe
+  cvm: online_pin
+  keyset: KS_TEST_01
+  description: Carte domestique piste

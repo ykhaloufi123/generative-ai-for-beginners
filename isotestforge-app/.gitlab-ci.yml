@@ -1,0 +1,56 @@
+# Pipeline de non-régression ISO 8583 : génération, validation, exécution sur simulateur, rapport.
+stages: [generate, test, report]
+
+variables:
+  ITF_HOME: $CI_PROJECT_DIR
+
+default:
+  image: python:3.12-slim
+  before_script:
+    - pip install -q -r requirements.txt && pip install -q -e .
+
+unit:
+  stage: generate
+  script:
+    - pytest -q
+
+generate_jmx:
+  stage: generate
+  script:
+    - itf generate examples/suites/acquiring_pos.yaml -o out/acquiring
+  artifacts:
+    paths: [out/acquiring]
+
+regression_simulator:
+  stage: test
+  script:
+    - (itf simulator --port 8583 &) && sleep 2
+    - itf run examples/suites/acquiring_pos.yaml --mode native --host 127.0.0.1 --port 8583 --no-llm
+  artifacts:
+    when: always
+    paths: [data/workflows]
+
+regression_jmeter:
+  stage: test
+  image: docker:27
+  services: [docker:27-dind]
+  rules:
+    - if: $RUN_JMETER == "1"
+  before_script: []
+  script:
+    - docker build -t isotestforge -f Dockerfile . && docker build -t isotestforge-jmeter docker/jmeter
+    - docker network create itf && docker run -d --name sim --network itf isotestforge itf simulator --port 8583
+    - docker run --rm --network itf -v $PWD/out/acquiring:/work isotestforge-jmeter -n -t ACQUIRING_POS_V1.jmx -q keys.properties -JITF_HOST=sim -JITF_PACKAGER=packager.xml -l results.jtl -Jjmeter.save.saveservice.output_format=csv
+  artifacts:
+    paths: [out/acquiring/results.jtl]
+
+nightly_from_requirements:
+  stage: report
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - (itf simulator --port 8583 &) && sleep 2
+    - itf pipeline examples/requirements/acquisition_tpe.md --name NIGHTLY --host SWITCH_SIM --execute native --exec-host 127.0.0.1 --exec-port 8583
+  artifacts:
+    when: always
+    paths: [data/workflows]
