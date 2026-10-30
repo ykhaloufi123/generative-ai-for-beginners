@@ -20,6 +20,20 @@ Les conditions des offres gratuites évoluent : vérifier la page tarifs du four
 
 ## A. Hugging Face Spaces
 
+**Déploiement automatique depuis GitHub (sans carte, sans terminal)** : le workflow
+`.github/workflows/deploy-isotestforge-hf.yml` crée le Space Docker et y publie l'application.
+
+1. huggingface.co > **Settings > Access Tokens** : créer un jeton de type **Write**.
+2. Dépôt GitHub > **Settings > Secrets and variables > Actions** :
+   - secret `HF_TOKEN` = le jeton ;
+   - secret `ITF_BASIC_AUTH` = `testeur:UnMotDePasseLong` (recopié comme secret du Space) ;
+   - secret `ANTHROPIC_API_KEY` (facultatif) ;
+   - variables facultatives `HF_SPACE` (défaut `<utilisateur>/isotestforge`) et `HF_SPACE_PRIVATE` (défaut `true`).
+3. Onglet **Actions** : activer les workflows si GitHub le demande (dépôt forké), puis relancer
+   *Deploy ISO-TestForge to Hugging Face Spaces*. Le journal affiche l'URL du Space.
+
+**Déploiement manuel** :
+
 1. Créer un compte sur huggingface.co, puis **New Space** : nom `isotestforge`, SDK **Docker**, modèle *Blank*,
    visibilité *Private* (recommandé).
 2. Dans le Space : **Settings > Variables and secrets** :
