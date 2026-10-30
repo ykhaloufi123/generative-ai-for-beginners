@@ -29,10 +29,13 @@ space = os.environ.get("HF_SPACE") or f"{api.whoami()['name']}/isotestforge"
 private = os.environ.get("HF_SPACE_PRIVATE", "true").lower() != "false"
 
 api.create_repo(space, repo_type="space", space_sdk="docker", private=private, exist_ok=True)
-if os.environ.get("ITF_BASIC_AUTH"):
-    api.add_space_secret(space, "ITF_BASIC_AUTH", os.environ["ITF_BASIC_AUTH"])
-if os.environ.get("ANTHROPIC_API_KEY"):
-    api.add_space_secret(space, "ANTHROPIC_API_KEY", os.environ["ANTHROPIC_API_KEY"])
+variables = api.get_space_variables(space)
+for key in ("ITF_BASIC_AUTH", "ANTHROPIC_API_KEY"):
+    if os.environ.get(key):
+        # Hugging Face refuse de démarrer si une variable et un secret portent le même nom
+        if key in variables:
+            api.delete_space_variable(space, key)
+        api.add_space_secret(space, key, os.environ[key])
 
 with tempfile.TemporaryDirectory() as tmp:
     dest = Path(tmp) / "space"
