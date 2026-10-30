@@ -1,0 +1,12 @@
+# Render Blueprint : New + > Blueprint > choisir ce dépôt GitHub
+services:
+  - type: web
+    name: isotestforge
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ITF_BASIC_AUTH
+        sync: false          # saisi dans le tableau de bord, ex. testeur:MotDePasseLong
+      - key: ANTHROPIC_API_KEY
+        sync: false          # facultatif

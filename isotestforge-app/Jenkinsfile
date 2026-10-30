@@ -1,0 +1,16 @@
+pipeline {
+  agent { docker { image 'python:3.12-slim' } }
+  environment { ITF_HOME = "${WORKSPACE}" }
+  stages {
+    stage('Installation') { steps { sh 'pip install -q -r requirements.txt && pip install -q -e .' } }
+    stage('Tests unitaires') { steps { sh 'pytest -q' } }
+    stage('Génération JMX') { steps { sh 'itf generate examples/suites/acquiring_pos.yaml -o out/acquiring' } }
+    stage('Régression simulateur') {
+      steps {
+        sh '(itf simulator --port 8583 &) && sleep 2'
+        sh 'itf run examples/suites/acquiring_pos.yaml --mode native --host 127.0.0.1 --port 8583 --no-llm'
+      }
+    }
+  }
+  post { always { archiveArtifacts artifacts: 'out/**,data/workflows/**', allowEmptyArchive: true } }
+}

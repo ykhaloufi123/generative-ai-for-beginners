@@ -1,0 +1,77 @@
+# Pack GAB : retraits, consultation de solde, annulations et refus courants.
+# À compléter selon les cahiers de certification dont vous disposez.
+suite: ATM_PACK_V1
+host: SWITCH_SIM
+description: Pack de recette GAB
+defaults:
+  card: VISA_EMV_PIN
+  terminal: ATM_01
+  amount: 200.00
+
+scenarios:
+  - id: ATM-001
+    title: Retrait EMV nominal
+    requirement: [ATM-REQ-01]
+    tags: [atm, smoke]
+    priority: P1
+    steps:
+      - {id: wd, template: WITHDRAWAL, expect: {"38": present}}
+
+  - id: ATM-002
+    title: Retrait puis annulation (billets non distribués)
+    requirement: [ATM-REQ-02]
+    tags: [atm]
+    steps:
+      - {id: wd, template: WITHDRAWAL}
+      - {id: rev, template: REVERSAL, ref: wd}
+
+  - id: ATM-003
+    title: Consultation de solde
+    requirement: [ATM-REQ-03]
+    tags: [atm]
+    steps:
+      - {id: bal, template: BALANCE_INQUIRY, amount: 0}
+
+  - id: ATM-004
+    title: Retrait multi-schémas
+    requirement: [ATM-REQ-01]
+    tags: [atm, matrix]
+    expand:
+      card: [VISA_EMV_PIN, MC_EMV_PIN, VISA_MAG, LOCAL_MAG]
+      amount: [100.00, 500.00]
+    steps:
+      - {id: wd, template: WITHDRAWAL}
+
+  - id: ATM-NEG-01
+    title: PIN erroné au GAB
+    requirement: [ATM-REQ-04]
+    derived_from: ATM-001.wd
+    mutation: wrong_pin
+
+  - id: ATM-NEG-02
+    title: Provision insuffisante
+    requirement: [ATM-REQ-05]
+    profiles: {card: MC_LOW_BALANCE}
+    steps:
+      - {id: wd, template: WITHDRAWAL, amount: 300.00, expect: {"39": insufficient_funds}}
+
+  - id: ATM-NEG-03
+    title: CVV de piste invalide
+    requirement: [ATM-REQ-06]
+    profiles: {card: VISA_MAG}
+    steps:
+      - {id: wd, template: WITHDRAWAL}
+    mutation: invalid_cvv
+
+  - id: ATM-NEG-04
+    title: ARQC invalide
+    requirement: [ATM-REQ-07]
+    derived_from: ATM-001.wd
+    mutation: bad_arqc
+
+  - id: ATM-NEG-05
+    title: Champ obligatoire DE25 absent
+    requirement: [ATM-REQ-08]
+    derived_from: ATM-001.wd
+    mutation: missing_field
+    mutation_args: {field: "25"}

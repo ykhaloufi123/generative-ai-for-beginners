@@ -1,0 +1,5 @@
+# Plages de BIN autorisées : uniquement des cartes de TEST. Tout PAN hors de ces plages est refusé
+# (saisie, import de traces, génération). Adapter à vos plages de test réelles.
+- {prefix: "476173", label: "Visa test"}
+- {prefix: "541333", label: "Mastercard test"}
+- {prefix: "600000", label: "Réseau domestique test"}

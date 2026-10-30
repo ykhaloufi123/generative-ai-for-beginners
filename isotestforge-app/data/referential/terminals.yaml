@@ -1,0 +1,29 @@
+- id: POS_ATTENDED
+  tid: "TPE00001"
+  mid: "MRC000000000001"
+  mcc: "5411"
+  name_location: "SUPERMARCHE TEST       CASABLANCA   MA"
+  terminal_kind: pos
+  contactless_cvm_limit: 600
+- id: POS_RESTAURANT
+  tid: "TPE00002"
+  mid: "MRC000000000002"
+  mcc: "5812"
+  name_location: "RESTAURANT TEST        RABAT        MA"
+  terminal_kind: pos
+- id: ATM_01
+  tid: "GAB00001"
+  mid: "ATM000000000001"
+  mcc: "6011"
+  name_location: "GAB AGENCE CENTRE      CASABLANCA   MA"
+  terminal_kind: atm
+  terminal_type: "14"
+  capabilities: "604020"
+- id: ECOM_01
+  tid: "ECOM0001"
+  mid: "WEB000000000001"
+  mcc: "5999"
+  name_location: "BOUTIQUE EN LIGNE TEST CASABLANCA   MA"
+  terminal_kind: ecom
+  condition_code: "59"
+  pin_capable: false

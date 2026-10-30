@@ -1,0 +1,113 @@
+# Squelettes de messages. Expressions {..} résolues par le Data Binder ; ${..} = fonctions/variables JMeter.
+# Les champs carte (14, 23, 35, 52, 55) sont ajoutés ou retirés automatiquement selon le profil carte et le terminal.
+- id: PURCHASE
+  mti: "0200"
+  description: Achat
+  processing_code: "000000"
+  fields: &financial
+    "2": "{card.pan}"
+    "3": "{proc}"
+    "4": "{amount}"
+    "7": "{dt7}"
+    "11": "{stan}"
+    "12": "{time12}"
+    "13": "{date13}"
+    "18": "{terminal.mcc}"
+    "22": "{entry_mode}"
+    "25": "{terminal.condition_code}"
+    "32": "{terminal.acquirer_id}"
+    "37": "{rrn}"
+    "41": "{terminal.tid}"
+    "42": "{terminal.mid}"
+    "43": "{terminal.name_location}"
+    "49": "{terminal.currency}"
+  crypto: [auto]
+  expect: {"39": approved}
+- id: PREAUTH
+  mti: "0100"
+  description: Pré-autorisation
+  processing_code: "000000"
+  fields: *financial
+  crypto: [auto]
+  expect: {"39": approved, "38": present}
+- id: COMPLETION
+  mti: "0220"
+  description: Complétion de pré-autorisation (advice)
+  processing_code: "000000"
+  chain: completion
+  copy_from_ref: ["2", "3", "14", "18", "22", "25", "32", "41", "42", "43", "49"]
+  fields:
+    "4": "{amount}"
+    "7": "{dt7}"
+    "11": "{stan}"
+    "12": "{time12}"
+    "13": "{date13}"
+    "37": "{ref.37}"
+    "38": "{ref.resp.38}"
+  crypto: [mac]
+  expect: {"39": approved}
+- id: REFUND
+  mti: "0200"
+  description: Remboursement
+  processing_code: "200000"
+  fields: *financial
+  crypto: [auto]
+  expect: {"39": approved}
+- id: WITHDRAWAL
+  mti: "0200"
+  description: Retrait GAB
+  processing_code: "010000"
+  fields: *financial
+  crypto: [auto]
+  expect: {"39": approved}
+- id: BALANCE_INQUIRY
+  mti: "0100"
+  description: Consultation de solde
+  processing_code: "310000"
+  fields: *financial
+  crypto: [auto]
+  expect: {"39": approved, "54": present}
+- id: REVERSAL
+  mti: "0400"
+  description: Annulation (reversal)
+  chain: reversal
+  copy_from_ref: ["2", "3", "4", "14", "18", "22", "25", "32", "37", "41", "42", "43", "49"]
+  fields:
+    "7": "{dt7}"
+    "11": "{stan}"
+    "12": "{ref.12}"
+    "13": "{ref.13}"
+    "90": "{original_data}"
+  crypto: [mac]
+  expect: {"39": approved}
+- id: REVERSAL_ADVICE
+  mti: "0420"
+  description: Annulation sur timeout (advice)
+  chain: reversal
+  copy_from_ref: ["2", "3", "4", "14", "18", "22", "25", "32", "37", "41", "42", "43", "49"]
+  fields:
+    "7": "{dt7}"
+    "11": "{stan}"
+    "90": "{original_data}"
+  crypto: [mac]
+  expect: {"39": approved}
+- id: SIGNON
+  mti: "0800"
+  description: Sign-on
+  fields: {"7": "{dt7}", "11": "{stan}", "70": "001"}
+  expect: {"39": approved}
+- id: SIGNOFF
+  mti: "0800"
+  description: Sign-off
+  fields: {"7": "{dt7}", "11": "{stan}", "70": "002"}
+  expect: {"39": approved}
+- id: ECHO
+  mti: "0800"
+  description: Echo test
+  fields: {"7": "{dt7}", "11": "{stan}", "70": "301"}
+  expect: {"39": approved}
+- id: KEY_EXCHANGE
+  mti: "0800"
+  description: Échange de clé (DE48 = ZPK chiffrée sous ZMK + KCV)
+  fields: {"7": "{dt7}", "11": "{stan}", "48": "{keys.zpk_under_zmk}{keys.zpk_kcv}", "70": "101"}
+  expect: {"39": approved}

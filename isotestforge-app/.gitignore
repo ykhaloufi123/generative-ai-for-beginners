@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+out/
+data/itf.sqlite
+data/cache/
+data/workflows/
+data/traces/
+**/keys.properties

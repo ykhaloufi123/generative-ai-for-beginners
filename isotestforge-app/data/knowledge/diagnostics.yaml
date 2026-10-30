@@ -1,0 +1,54 @@
+# Base de diagnostics connus (sans IA). Premier match gagnant.
+# when : got (DE39 reçu), expected (DE39 attendu), mti, mutation, template, message (sous-chaîne)
+- id: D001
+  when: {got: "55", expected: "00"}
+  cause: PIN refusé alors qu'il est correct dans le profil — ZPK différente côté hôte ou format de PIN block différent.
+  action: Comparer le KCV de la ZPK (itf keys kcv) avec celui de l'hôte ; vérifier le format ISO 0 et le PAN utilisé dans le PIN block.
+- id: D002
+  when: {got: "63"}
+  cause: MAC rejeté — clé TAK, algorithme ou périmètre de calcul du MAC différents.
+  action: Vérifier le KCV de la TAK, l'algorithme (ISO 9797 alg. 3 / DESEDE) et le champ MAC (64 ou 128) de la spec hôte.
+- id: D003
+  when: {got: "30"}
+  cause: Erreur de format — champ obligatoire absent ou format non conforme au packager de l'hôte.
+  action: Lancer « itf validate » ; comparer le packager local et celui de l'hôte (itf spec-diff).
+- id: D004
+  when: {got: "05", template: PURCHASE}
+  cause: Refus générique ; souvent un ARQC invalide (IMK-AC, ATC rejoué ou données EMV incohérentes).
+  action: Vérifier IMK-AC (KCV), la CVN de l'IAD (9F10) et l'ATC ; contrôler 9F02/9F37/9A avec « itf decode ».
+- id: D005
+  when: {got: "TIMEOUT", expected: "00"}
+  cause: Aucune réponse — hôte injoignable, mauvais port/canal ou en-tête de canal différent.
+  action: Vérifier ITF_HOST/ITF_PORT, la classe de canal (ASCIIChannel, NACChannel) et l'en-tête ; tester un 0800 echo.
+- id: D006
+  when: {got: "25"}
+  cause: Transaction d'origine introuvable pour l'annulation/complétion.
+  action: Vérifier le DE90 (MTI, STAN, DE7 d'origine) et que l'étape d'origine a bien été approuvée.
+- id: D007
+  when: {got: "94"}
+  cause: Doublon détecté — STAN/RRN réutilisé.
+  action: Vérifier la génération du STAN (DE11) et du RRN (DE37) ; relancer avec de nouvelles valeurs.
+- id: D008
+  when: {got: "54"}
+  cause: Carte expirée côté hôte.
+  action: Mettre à jour la date d'expiration du profil carte ou la date système de l'hôte de test.
+- id: D009
+  when: {got: "14"}
+  cause: PAN inconnu de l'émetteur.
+  action: Vérifier que la carte de test est provisionnée dans l'émetteur de test.
+- id: D010
+  when: {got: "51"}
+  cause: Provision insuffisante.
+  action: Réapprovisionner la carte de test ou réduire le montant.
+- id: D011
+  when: {got: "82"}
+  cause: CVV/iCVV refusé — CVK différente ou service code incohérent.
+  action: Comparer le KCV de la CVK ; pour une carte puce, l'iCVV utilise le service code 999.
+- id: D012
+  when: {got: "00", expected: "55"}
+  cause: L'hôte n'a pas contrôlé le PIN (stand-in, PIN non transmis ou contrôle désactivé).
+  action: Vérifier que le DE52 est présent et chiffré ; vérifier la configuration de contrôle PIN de l'émetteur.
+- id: D013
+  when: {message: "Connection refused"}
+  cause: Connexion refusée par l'hôte.
+  action: Démarrer le simulateur (itf simulator) ou vérifier l'accès réseau à l'UAT.

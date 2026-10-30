@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ISO-TestForge</title>
+<style>
+:root{--bg:#f5f4f0;--panel:#fff;--ink:#1c1c1a;--muted:#6c6b66;--line:#e2e0d9;--accent:#1f5f8b;--accent-soft:#e3eef6;
+--ok:#1f7a4d;--ko:#b3261e;--warn:#8a6d00;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--panel:#1d1d1b;--ink:#ecebe6;--muted:#a19f98;--line:#33322e;
+--accent:#7ab6e0;--accent-soft:#1d2d39;--ok:#5cc28f;--ko:#ff8a80;--warn:#e0c25a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:20px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:2;flex-wrap:wrap}
+header h1{font-size:16px;margin:0;letter-spacing:.02em}header h1 span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}nav button{background:none;border:0;padding:6px 10px;border-radius:6px;color:var(--muted);cursor:pointer;font:inherit}
+nav button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+section{display:none}section.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 10px}h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{font-family:var(--mono);font-size:12.5px;min-height:160px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+button.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;margin:10px 8px 0 0}
+button.ghost{background:none;color:var(--accent);border:1px solid var(--accent)}
+button:disabled{opacity:.5;cursor:wait}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11.5px;background:var(--accent-soft);color:var(--accent);margin:1px}
+.ok{color:var(--ok);font-weight:600}.ko{color:var(--ko);font-weight:600}.warn{color:var(--warn);font-weight:600}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}.steps span{font-size:12px;padding:3px 9px;border-radius:12px;border:1px solid var(--line);color:var(--muted)}
+.steps span.done{border-color:var(--ok);color:var(--ok)}.steps span.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+pre{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;max-height:420px;margin:0}
+.muted{color:var(--muted)}.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:10px}.tile b{display:block;font-size:20px}
+#toast{position:fixed;bottom:16px;right:16px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;display:none;max-width:420px;z-index:5}
+.wrap{overflow-x:auto}a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>ISO-<span>TestForge</span></h1>
+  <nav id="nav">
+    <button data-s="new" class="on">Nouveau</button>
+    <button data-s="wfs">Workflows</button>
+    <button data-s="ref">Référentiel</button>
+    <button data-s="tools">Outils</button>
+    <button data-s="cov">Couverture &amp; coûts</button>
+    <button data-s="sim">Simulateur</button>
+  </nav>
+</header>
+<main>
+<!-- ====================================================== NOUVEAU -->
+<section id="s-new" class="on">
+  <div class="card">
+    <h2>Nouvelle campagne à partir de besoins</h2>
+    <div class="row">
+      <div><label>Nom de la suite</label><input id="n-name" value="RECETTE_TPE"></div>
+      <div><label>Hôte cible</label><select id="n-host"></select></div>
+      <div><label>Mode</label><select id="n-auto"><option value="0">Avec validations humaines</option><option value="1">Automatique (CI)</option></select></div>
+    </div>
+    <label>Besoins (un par paragraphe, « REQ-12 : … » conserve l'identifiant)</label>
+    <textarea id="n-text" placeholder="REQ-100 : Le système doit accepter un achat EMV avec PIN online, annulable par le commerçant.&#10;&#10;REQ-101 : Un PIN erroné doit être refusé."></textarea>
+    <div class="row">
+      <div><label>… ou importer un fichier (Word, PDF, Excel, Markdown)</label><input type="file" id="n-file" accept=".docx,.pdf,.xlsx,.md,.txt"></div>
+      <div><label>… ou une requête Jira (JQL)</label><input id="n-jql" placeholder="project = MONETIQUE AND labels = recette"></div>
+    </div>
+    <label><input type="checkbox" id="n-llm" style="width:auto"> Forcer l'analyse IA (sinon : règles d'abord, IA seulement si nécessaire)</label>
+    <button class="btn" id="n-go">Analyser les besoins</button>
+    <button class="btn ghost" id="n-dsl">Partir d'une suite DSL existante</button>
+  </div>
+</section>
+
+<!-- ====================================================== WORKFLOWS -->
+<section id="s-wfs">
+  <div class="card"><h2>Workflows</h2><div class="wrap"><table id="wf-list"></table></div></div>
+  <div id="wf" class="card" style="display:none"></div>
+</section>
+
+<!-- ====================================================== RÉFÉRENTIEL -->
+<section id="s-ref">
+  <div class="card"><h2>Profils carte <span class="muted" id="ref-ver"></span></h2><div class="wrap"><table id="ref-cards"></table></div></div>
+  <div class="card"><h2>Générer des cartes de test</h2>
+    <div class="row">
+      <div><label>BIN de test</label><input id="g-bin" value="476173"></div>
+      <div><label>Nombre</label><input id="g-count" type="number" value="2"></div>
+      <div><label>Type</label><select id="g-type"><option>emv</option><option>contactless</option><option>magstripe</option></select></div>
+      <div><label>Jeu de clés</label><input id="g-ks" value="KS_TEST_01"></div>
+      <div><label>CVN</label><select id="g-cvn"><option>10</option><option>18</option></select></div>
+    </div>
+    <button class="btn" id="g-go">Générer</button>
+  </div>
+  <div class="card"><h2>Terminaux, clés (KCV), hôtes, templates</h2><div id="ref-other"></div></div>
+</section>
+
+<!-- ====================================================== OUTILS -->
+<section id="s-tools">
+  <div class="card"><h2>Décodeur de messages</h2>
+    <label>Message (ASCII, hexadécimal ou XML jPOS)</label><textarea id="d-text" style="min-height:90px"></textarea>
+    <button class="btn" id="d-go">Décoder</button><pre id="d-out" style="margin-top:10px"></pre></div>
+  <div class="card"><h2>Import de traces → scénarios de régression</h2>
+    <div class="row"><div><label>Fichier (JSONL simulateur, log jPOS, lignes HEX:)</label><input type="file" id="t-file"></div>
+    <div><label>Exigence rattachée</label><input id="t-req" value="REQ-REG"></div></div>
+    <button class="btn" id="t-go">Importer</button><pre id="t-out" style="margin-top:10px"></pre></div>
+  <div class="card"><h2>Diff de spécifications (packagers)</h2>
+    <div class="row"><div><label>Ancien packager</label><input type="file" id="sd-old"></div><div><label>Nouveau packager</label><input type="file" id="sd-new"></div></div>
+    <button class="btn" id="sd-go">Comparer</button><pre id="sd-out" style="margin-top:10px"></pre></div>
+</section>
+
+<!-- ====================================================== COUVERTURE -->
+<section id="s-cov">
+  <div class="card"><h2>Couverture</h2><div id="cov"></div></div>
+  <div class="card"><h2>Consommation IA</h2><div id="usage"></div></div>
+  <div class="card"><h2>Bibliothèque et propositions</h2><div id="lib"></div></div>
+</section>
+
+<!-- ====================================================== SIMULATEUR -->
+<section id="s-sim">
+  <div class="card"><h2>Simulateur hôte intégré</h2>
+    <div class="row"><div><label>Port</label><input id="sim-port" value="8583"></div></div>
+    <button class="btn" id="sim-start">Démarrer</button><button class="btn ghost" id="sim-stop">Arrêter</button>
+    <p class="muted">Le simulateur démarre automatiquement avec l'application (port 8583). Ses échanges masqués sont réutilisables dans « Import de traces ».</p>
+    <a class="tag" href="/api/simulator/traces">Télécharger les traces du simulateur</a>
+    <pre id="sim-out" style="margin-top:10px"></pre>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+<script>
+const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = (m, ms=4000) => { const t=$('#toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', ms); };
+async function api(path, opts={}) {
+  const o = {...opts}; if (o.json !== undefined) { o.method = o.method || 'POST'; o.headers={'content-type':'application/json'}; o.body=JSON.stringify(o.json); delete o.json; }
+  const r = await fetch(path, o); const d = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(d.error || r.statusText); return d;
+}
+async function busy(btn, fn) { btn.disabled=true; try { await fn(); } catch(e) { toast('Erreur : '+e.message, 8000); } finally { btn.disabled=false; } }
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => show(b.dataset.s));
+function show(s) {
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.s===s));
+  document.querySelectorAll('section').forEach(x => x.classList.toggle('on', x.id==='s-'+s));
+  ({wfs:loadWfs, ref:loadRef, cov:loadCov, sim:simStatus})[s]?.();
+}
+let REF = null;
+async function loadRef() {
+  REF = await api('/api/referential');
+  $('#n-host').innerHTML = REF.hosts.map(h=>`<option>${esc(h.id)}</option>`).join('');
+  $('#ref-ver').textContent = 'version ' + REF.version;
+  $('#ref-cards').innerHTML = '<tr><th>Id</th><th>Schéma</th><th>Type</th><th>PAN</th><th>CVM</th><th>Statut</th></tr>' +
+    REF.cards.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.scheme)}</td><td>${esc(c.type)}</td><td><code>${esc(c.pan)}</code></td><td>${esc(c.cvm)}</td><td>${esc(c.status)}</td></tr>`).join('');
+  $('#ref-other').innerHTML =
+    '<h3>Terminaux</h3>' + REF.terminals.map(t=>`<span class="tag">${esc(t.id)} · ${esc(t.kind)} · ${esc(t.tid)}</span>`).join(' ') +
+    '<h3>Jeux de clés (KCV)</h3>' + REF.keysets.map(k=>`<div><b>${esc(k.id)}</b> ${Object.entries(k.kcv).map(([n,v])=>`<span class="tag">${esc(n)} ${esc(v)}</span>`).join(' ')}</div>`).join('') +
+    '<h3>Hôtes</h3>' + REF.hosts.map(h=>`<div>${esc(h.id)} — ${esc(h.host)}:${h.port} (${esc(h.channel)}, spec ${esc(h.spec_version)})</div>`).join('') +
+    '<h3>Templates</h3>' + REF.templates.map(t=>`<span class="tag">${esc(t.id)} ${esc(t.mti)}</span>`).join(' ') +
+    '<h3>Mutateurs (cas négatifs sans IA)</h3>' + REF.mutators.map(m=>`<div><code>${esc(m.name)}</code> — ${esc(m.description)} <span class="muted">→ ${esc(m.expect)}</span></div>`).join('');
+}
+$('#g-go').onclick = e => busy(e.target, async () => {
+  const r = await api('/api/referential/cards/generate', {json:{bin:$('#g-bin').value, count:$('#g-count').value, card_type:$('#g-type').value, keyset:$('#g-ks').value, cvn:$('#g-cvn').value}});
+  toast('Cartes créées : '+r.created.join(', ')); loadRef();
+});
+// ---------------------------------------------------------------- nouveau workflow
+$('#n-go').onclick = e => busy(e.target, async () => {
+  let reqs;
+  const f = $('#n-file').files[0];
+  if (f) { const fd = new FormData(); fd.append('file', f); reqs = await api('/api/requirements/parse', {method:'POST', body:fd}); }
+  else if ($('#n-jql').value) reqs = await api('/api/requirements/parse', {json:{jql:$('#n-jql').value}});
+  else reqs = await api('/api/requirements/parse', {json:{text:$('#n-text').value}});
+  if (!reqs.length) throw new Error('aucun besoin détecté');
+  const wf = await api('/api/workflows', {json:{name:$('#n-name').value, host:$('#n-host').value, requirements:reqs, auto:$('#n-auto').value==='1', force_llm:$('#n-llm').checked}});
+  show('wfs'); openWf(wf.id);
+});
+$('#n-dsl').onclick = e => busy(e.target, async () => {
+  const dsl = prompt('Collez la suite DSL (YAML) :'); if (!dsl) return;
+  const wf = await api('/api/workflows', {json:{name:$('#n-name').value, host:$('#n-host').value, dsl}});
+  show('wfs'); openWf(wf.id);
+});
+// ---------------------------------------------------------------- workflows
+const STEPS = [['intents_review','Intentions'],['dsl_review','DSL'],['compiled','JMX'],['done','Résultats']];
+async function loadWfs() {
+  const l = await api('/api/workflows');
+  $('#wf-list').innerHTML = '<tr><th>Workflow</th><th>Suite</th><th>Hôte</th><th>Statut</th></tr>' + l.map(w =>
+    `<tr><td><a href="#" onclick="openWf('${w.id}');return false">${esc(w.id)}</a></td><td>${esc(w.name)}</td><td>${esc(w.host)}</td><td>${esc(w.status)}</td></tr>`).join('');
+}
+async function act(wid, action, payload, btn) {
+  await busy(btn, async () => { await api(`/api/workflows/${wid}/${action}`, {json:payload||{}}); await openWf(wid); });
+}
+async function openWf(wid) {
+  const wf = await api('/api/workflows/'+wid), d = wf.data, el = $('#wf'); el.style.display='block';
+  const idx = STEPS.findIndex(s=>s[0]===wf.status);
+  let h = `<h2>${esc(wf.name)} <span class="muted">${esc(wf.id)}</span></h2><div class="steps">` +
+    STEPS.map((s,i)=>`<span class="${i<idx?'done':i===idx?'cur':''}">${i+1}. ${s[1]}</span>`).join('') + '</div>';
+  h += `<div class="muted">Appels agents : ${wf.cost.agent_calls} · sans IA : ${wf.cost.share_without_llm} % · tokens : ${wf.cost.tokens} · coût : ${wf.cost.cost_usd} $</div>`;
+  if (d.error) h += `<p class="ko">${esc(d.error)}</p>`;
+  if (d.questions?.length) h += '<h3>Questions pour le testeur</h3><ul>' + d.questions.map(q=>`<li>${esc(q)}</li>`).join('') + '</ul>';
+  if (d.intents && !d.dsl) {
+    h += '<h3>Intentions (modifiables)</h3><textarea id="wf-intents" style="min-height:260px">' + esc(JSON.stringify(d.intents, null, 2)) + '</textarea>' +
+      `<button class="btn" onclick="act('${wid}','approve-intents',{intents:JSON.parse($('#wf-intents').value)},this)">Valider les intentions → concevoir</button>`;
+  }
+  if (d.dsl) {
+    const v = d.validation || {};
+    h += `<h3>Suite DSL — ${v.ok?'<span class="ok">valide</span>':'<span class="ko">'+(v.errors||0)+' erreur(s)</span>'}, ${v.warnings||0} avertissement(s)` +
+      (d.expansion ? ` · ${d.expansion.output_scenarios} scénarios après expansion (pairwise : ${d.expansion.pairwise_saved} évités)` : '') + '</h3>';
+    h += `<textarea id="wf-dsl" style="min-height:320px">${esc(d.dsl)}</textarea>`;
+    h += `<button class="btn ghost" onclick="act('${wid}','check',{dsl:$('#wf-dsl').value},this)">Revalider</button>`;
+    h += `<button class="btn" onclick="act('${wid}','approve-dsl',{dsl:$('#wf-dsl').value},this)">Valider le DSL → générer le JMX</button>`;
+    if (v.issues?.length) h += '<ul>' + v.issues.map(i=>`<li class="${i.level==='error'?'ko':'warn'}">${esc(i.where)} : ${esc(i.message)}</li>`).join('') + '</ul>';
+    if (d.preview) h += '<h3>Aperçu des messages</h3><div class="wrap"><table><tr><th>Scénario</th><th>Étapes</th></tr>' + d.preview.map(s =>
+      `<tr><td><b>${esc(s.id)}</b><br><span class="muted">${esc(s.title)}</span><br>${(s.requirements||[]).map(r=>`<span class="tag">${esc(r)}</span>`).join('')} ${s.mutation?`<span class="tag">${esc(s.mutation)}</span>`:''}</td><td>` +
+      s.steps.map(st=>`<details><summary>${esc(st.id)} · ${esc(st.mti)} · attendu ${esc(JSON.stringify(st.expect))} · crypto ${Object.entries(st.crypto).filter(x=>x[1]).map(x=>x[0]).join('+')||'—'}</summary><pre>${esc(Object.entries(st.fields).map(([k,v])=>`DE${k.padEnd(8)} ${v}`).join('\n'))}</pre></details>`).join('') + '</td></tr>').join('') + '</table></div>';
+  }
+  if (d.files) {
+    h += '<h3>Livrables</h3>' + Object.entries(d.files).map(([k,p])=>`<a class="tag" href="/api/workflows/${wid}/files/${p.split('/').pop()}">${esc(p.split('/').pop())}</a>`).join(' ');
+    h += `<div class="row" style="margin-top:8px"><div><label>Exécution</label><select id="wf-mode"><option value="native">Runner natif (sans JMeter)</option><option value="jmeter">JMeter</option></select></div>
+      <div><label>Hôte</label><input id="wf-host" placeholder="défaut : spec hôte"></div><div><label>Port</label><input id="wf-port"></div></div>
+      <button class="btn" onclick="act('${wid}','execute',{mode:$('#wf-mode').value,host:$('#wf-host').value||null,port:$('#wf-port').value||null},this)">Exécuter</button>`;
+  }
+  if (d.analysis) {
+    const t = d.analysis.totals;
+    h += `<h3>Résultats</h3><div class="tiles"><div class="tile">Réussite<b>${t.pass_rate} %</b></div><div class="tile">OK<b class="ok">${t.passed}</b></div><div class="tile">KO<b class="ko">${t.failed}</b></div><div class="tile">Moyenne<b>${t.avg_ms} ms</b></div><div class="tile">Couverture<b>${d.coverage?.score ?? '—'}</b></div></div>`;
+    h += `<p><a href="/api/workflows/${wid}/files/report.html" target="_blank">Rapport HTML</a> · <a href="/api/workflows/${wid}/files/report.xlsx">Export Excel</a></p>`;
+    h += '<div class="wrap"><table><tr><th>Scénario</th><th>Statut</th><th>Détail</th></tr>' + d.analysis.scenarios.map(s =>
+      `<tr><td>${esc(s.id)}</td><td class="${s.status==='passed'?'ok':s.status==='failed'?'ko':'warn'}">${esc(s.status)}</td><td>${s.steps.map(st=>`${esc(st.step)} : ${esc(st.got)} ${st.success?'':'<span class="ko">'+esc(st.message)+'</span>'}${st.diagnostic?'<br><span class="muted">→ '+esc(st.diagnostic.cause)+' '+esc(st.diagnostic.action)+'</span>':''}`).join('<br>')}</td></tr>`).join('') + '</table></div>';
+  }
+  el.innerHTML = h; el.scrollIntoView({behavior:'smooth'}); loadWfs();
+}
+// ---------------------------------------------------------------- outils
+$('#d-go').onclick = e => busy(e.target, async () => { const r = await api('/api/decode', {json:{text:$('#d-text').value}}); $('#d-out').textContent = r.text; });
+$('#t-go').onclick = e => busy(e.target, async () => {
+  const fd = new FormData(); fd.append('file', $('#t-file').files[0]); fd.append('requirement', $('#t-req').value);
+  const r = await api('/api/traces/import', {method:'POST', body:fd}); $('#t-out').textContent = JSON.stringify(r.stats) + '\n\n' + r.dsl;
+});
+$('#sd-go').onclick = e => busy(e.target, async () => {
+  const fd = new FormData(); fd.append('old', $('#sd-old').files[0]); fd.append('new', $('#sd-new').files[0]);
+  const r = await api('/api/spec-diff', {method:'POST', body:fd}); $('#sd-out').textContent = JSON.stringify(r, null, 2);
+});
+// ---------------------------------------------------------------- couverture & coûts
+async function loadCov() {
+  const c = await api('/api/coverage'), u = await api('/api/usage'), l = await api('/api/library'), p = await api('/api/proposals');
+  const ops = Object.keys(Object.values(c.matrix)[0] || {});
+  $('#cov').innerHTML = `<div class="tiles"><div class="tile">Score<b>${c.score}</b></div><div class="tile">Exigences<b>${Object.keys(c.requirements).length}</b></div><div class="tile">Non couvertes<b class="ko">${c.uncovered_requirements.length}</b></div></div>` +
+    '<h3>Matrice type de carte × opération</h3><div class="wrap"><table><tr><th>Carte</th>' + ops.map(o=>`<th>${esc(o)}</th>`).join('') + '<th>Annulation</th></tr>' +
+    Object.entries(c.matrix).map(([ct,row])=>`<tr><td>${esc(ct)}</td>${Object.values(row).map(n=>`<td class="${n?'ok':'muted'}">${n||'—'}</td>`).join('')}<td class="${c.reversal_by_card_type[ct]?'ok':'muted'}">${c.reversal_by_card_type[ct]?'oui':'non'}</td></tr>`).join('') + '</table></div>' +
+    '<h3>Trous</h3><ul>' + c.gaps.map(g=>`<li>${esc(g)}</li>`).join('') + '</ul>' +
+    (c.suggestions.length ? '<h3>Suggestions (DSL prêt à coller)</h3><pre>' + esc(c.suggestions.map(s=>JSON.stringify(s)).join('\n')) + '</pre>' : '');
+  $('#usage').innerHTML = `<div class="tiles"><div class="tile">Appels<b>${u.calls||0}</b></div><div class="tile">Tokens<b>${u.tokens||0}</b></div><div class="tile">Coût<b>${u.cost_usd||0} $</b></div><div class="tile">Cache<b>${u.cache_hit_rate||0} %</b></div></div>`;
+  $('#lib').innerHTML = `<h3>Bibliothèque (${l.library.length})</h3>` + l.library.slice(0,30).map(x=>`<span class="tag">${esc(x.id)}</span>`).join(' ') +
+    `<h3>Corrections apprises (${l.corrections.length})</h3><h3>Templates proposés par l'Outilleur</h3>` +
+    (p.length ? p.map(x=>`<div><pre>${esc(x.content)}</pre>${x.status==='pending'?`<button class="btn" onclick="api('/api/proposals/${x.id}/accept',{json:{}}).then(()=>{toast('Template ajouté');loadCov()})">Accepter</button>`:'<span class="ok">accepté</span>'}</div>`).join('') : '<span class="muted">Aucune</span>');
+}
+// ---------------------------------------------------------------- simulateur
+async function simStatus(action) {
+  const r = action ? await api('/api/simulator/'+action, {json:{port:$('#sim-port').value}}) : await api('/api/simulator');
+  $('#sim-out').textContent = JSON.stringify(r, null, 2);
+}
+$('#sim-start').onclick = e => busy(e.target, () => simStatus('start'));
+$('#sim-stop').onclick = e => busy(e.target, () => simStatus('stop'));
+loadRef();
+</script>
+</body>
+</html>

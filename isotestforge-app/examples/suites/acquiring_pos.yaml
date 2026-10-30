@@ -1,0 +1,125 @@
+# Suite d'exemple écrite à la main (même format que celui produit par les agents IA).
+suite: ACQUIRING_POS_V1
+host: SWITCH_SIM
+description: Acquisition TPE — achats EMV, sans contact, piste, annulations et cas négatifs
+defaults:
+  card: VISA_EMV_PIN
+  terminal: POS_ATTENDED
+  amount: 150.00
+
+scenarios:
+  - id: POS-EMV-001
+    title: Achat EMV PIN online puis annulation
+    requirement: [REQ-042, REQ-051]
+    tags: [emv, smoke]
+    priority: P1
+    steps:
+      - id: auth
+        template: PURCHASE
+        expect: {"38": present}
+      - id: rev
+        template: REVERSAL
+        ref: auth
+
+  - id: POS-EMV-002
+    title: Achat EMV — matrice cartes x terminaux x montants
+    requirement: [REQ-042]
+    tags: [emv, matrix]
+    expand:
+      card: [VISA_EMV_PIN, VISA_EMV_CVN18, MC_EMV_PIN]
+      terminal: [POS_ATTENDED, POS_RESTAURANT]
+      amount: [10.00, 250.00, 999.99]
+    steps:
+      - id: auth
+        template: PURCHASE
+
+  - id: POS-CTLS-001
+    title: Sans contact sous le plafond, sans PIN
+    requirement: [REQ-060]
+    tags: [contactless]
+    profiles: {card: VISA_CTLS}
+    steps:
+      - {id: auth, template: PURCHASE, amount: 200.00}
+
+  - id: POS-CTLS-002
+    title: Sans contact au-dessus du plafond, PIN exigé
+    requirement: [REQ-061]
+    tags: [contactless]
+    profiles: {card: MC_CTLS}
+    steps:
+      - {id: auth, template: PURCHASE, amount: 800.00}
+
+  - id: POS-MAG-001
+    title: Achat piste magnétique avec PIN
+    requirement: [REQ-070]
+    tags: [magstripe]
+    profiles: {card: VISA_MAG}
+    steps:
+      - {id: auth, template: PURCHASE, amount: 75.50}
+
+  - id: POS-PRE-001
+    title: Pré-autorisation puis complétion
+    requirement: [REQ-080]
+    tags: [preauth]
+    steps:
+      - {id: pre, template: PREAUTH, amount: 500.00}
+      - {id: comp, template: COMPLETION, ref: pre, amount: 432.10}
+
+  - id: POS-NEG-PIN
+    title: PIN erroné
+    requirement: [REQ-042]
+    derived_from: POS-EMV-001.auth
+    mutation: wrong_pin
+
+  - id: POS-NEG-EXP
+    title: Carte expirée
+    requirement: [REQ-043]
+    derived_from: POS-EMV-001.auth
+    mutation: expired_card
+
+  - id: POS-NEG-MAC
+    title: MAC invalide
+    requirement: [REQ-090]
+    derived_from: POS-EMV-001.auth
+    mutation: bad_mac
+
+  - id: POS-NEG-LOST
+    title: Carte perdue
+    requirement: [REQ-044]
+    profiles: {card: VISA_LOST}
+    steps:
+      - {id: auth, template: PURCHASE, expect: {"39": lost_card}}
+
+  - id: POS-NEG-FUNDS
+    title: Provision insuffisante
+    requirement: [REQ-045]
+    profiles: {card: MC_LOW_BALANCE}
+    steps:
+      - {id: auth, template: PURCHASE, amount: 120.00, expect: {"39": insufficient_funds}}
+
+  - id: POS-NEG-TIMEOUT
+    title: Absence de réponse puis annulation automatique 0420
+    requirement: [REQ-095]
+    derived_from: POS-EMV-001.auth
+    mutation: timeout_then_advice
+
+  - id: POS-NEG-DUP
+    title: Retransmission dupliquée
+    requirement: [REQ-096]
+    derived_from: POS-EMV-001.auth
+    mutation: duplicate_stan
+
+  - id: NET-001
+    title: Echo réseau
+    requirement: [REQ-001]
+    tags: [network]
+    profiles: {card: null}
+    steps:
+      - {id: echo, template: ECHO}
+
+load:
+  tps: 20
+  threads: 10
+  ramp_up_s: 30
+  duration_s: 300
+  amounts: [12.5, 49.9, 150.0, 320.0]

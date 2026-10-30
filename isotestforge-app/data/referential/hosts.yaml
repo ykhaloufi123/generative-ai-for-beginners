@@ -1,0 +1,83 @@
+- id: SWITCH_SIM
+  description: Simulateur hôte ISO-TestForge (local / Docker)
+  packager: data/packagers/iso87ascii.xml
+  host: localhost
+  port: 8583
+  channel: {kind: ASCIIChannel, header: "", length_digits: 4}
+  timeout_ms: 10000
+  mac_field: 128
+  mux_key: "41 11"
+  signon: true
+  spec_version: "1.0"
+  mandatory:
+    "0100": [2, 3, 4, 7, 11, 12, 13, 22, 25, 37, 41, 42, 49]
+    "0200": [2, 3, 4, 7, 11, 12, 13, 22, 25, 37, 41, 42, 49]
+    "0220": [2, 3, 4, 7, 11, 37, 38, 41, 42, 49]
+    "0400": [2, 3, 4, 7, 11, 37, 41, 42, 49, 90]
+    "0420": [2, 3, 4, 7, 11, 37, 41, 42, 49, 90]
+    "0800": [7, 11, 70]
+  response_codes:
+    approved: "00"
+    refer: "01"
+    invalid_merchant: "03"
+    do_not_honor: "05"
+    invalid_transaction: "12"
+    invalid_amount: "13"
+    invalid_card: "14"
+    format_error: "30"
+    lost_card: "41"
+    stolen_card: "43"
+    insufficient_funds: "51"
+    expired_card: "54"
+    wrong_pin: "55"
+    txn_not_permitted: "57"
+    cvv_failure: "82"
+    security_violation: "63"
+    arqc_failure: "05"
+    pin_tries_exceeded: "75"
+    original_not_found: "25"
+    issuer_unavailable: "91"
+    duplicate: "94"
+    system_error: "96"
+  response_labels:
+    "00": Approuvée
+    "01": Appeler l'émetteur
+    "03": Commerçant invalide
+    "05": Ne pas honorer
+    "12": Transaction invalide
+    "13": Montant invalide
+    "14": Numéro de carte invalide
+    "25": Transaction d'origine introuvable
+    "30": Erreur de format
+    "41": Carte perdue
+    "43": Carte volée
+    "51": Provision insuffisante
+    "54": Carte expirée
+    "55": PIN erroné
+    "57": Transaction non permise au porteur
+    "63": Violation de sécurité (MAC)
+    "75": Nombre d'essais PIN dépassé
+    "82": CVV invalide
+    "91": Émetteur indisponible
+    "94": Transmission dupliquée
+    "96": Erreur système
+  magic_amounts:
+    timeout: "000000099901"        # le simulateur ne répond pas
+    issuer_unavailable: "000000099902"
+    system_error: "000000099903"
+- id: SWITCH_UAT
+  description: Plateforme d'homologation (à adapter)
+  packager: data/packagers/iso87ascii.xml
+  host: uat-switch.example.local
+  port: 9000
+  channel: {kind: ASCIIChannel, header: "", length_digits: 4}
+  timeout_ms: 15000
+  mac_field: 128
+  spec_version: "1.0"
+  mandatory:
+    "0200": [2, 3, 4, 7, 11, 12, 13, 22, 25, 37, 41, 42, 49]
+    "0400": [2, 3, 4, 7, 11, 37, 41, 42, 49, 90]
+  response_codes: {approved: "00", wrong_pin: "55", expired_card: "54", insufficient_funds: "51", format_error: "30",
+                   lost_card: "41", do_not_honor: "05", security_violation: "63", invalid_amount: "13",
+                   original_not_found: "25", duplicate: "94", invalid_transaction: "12", cvv_failure: "82",
+                   arqc_failure: "05", txn_not_permitted: "57", issuer_unavailable: "91", system_error: "96"}
