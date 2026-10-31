@@ -237,6 +237,47 @@ async def usage(request):
     return ok(P.router.usage_report() if P.router else {"calls": 0, "note": "LLM désactivé"})
 
 
+LLM_TASKS = {"requirement_analysis": "Analyse des exigences (besoin -> intentions de test)",
+             "scenario_design": "Conception des scénarios DSL",
+             "template_proposal": "Proposition de nouveaux templates (Outilleur)",
+             "result_diagnosis": "Diagnostic des résultats en échec",
+             "scenario_review": "Revue des scénarios"}
+
+
+@handle
+async def llm_config(request):
+    if not P.router:
+        return err("IA désactivée au lancement (ITF_NO_LLM=1)", 409)
+    if request.method == "PUT":
+        errors = P.router.save_config((await body(request)).get("config") or {})
+        if errors:
+            return ok({"errors": errors}, 422)
+    elif request.method == "DELETE":
+        P.router.reset_config()
+    return ok({"config": P.router.cfg, "status": P.router.status(), "tasks": LLM_TASKS})
+
+
+@handle
+async def llm_key(request):
+    if not P.router:
+        return err("IA désactivée au lancement (ITF_NO_LLM=1)", 409)
+    b = await body(request)
+    if b.get("provider") not in P.router.cfg["providers"]:
+        return err("fournisseur inconnu", 404)
+    P.router.set_key(b["provider"], (b.get("key") or "").strip())
+    return ok(P.router.status())
+
+
+@handle
+async def llm_test(request):
+    if not P.router:
+        return err("IA désactivée au lancement (ITF_NO_LLM=1)", 409)
+    model = (await body(request)).get("model", "")
+    if "/" not in model or model.split("/", 1)[0] not in P.router.cfg["providers"]:
+        return err("candidat attendu au format fournisseur/modèle")
+    return ok(await run_in_threadpool(P.router.test, model))
+
+
 async def history(request):
     return ok(P.store.history(request.query_params.get("suite")))
 
@@ -307,6 +348,8 @@ routes = [
     Route("/api/traces/import", import_traces, methods=["POST"]),
     Route("/api/spec-diff", diff_specs, methods=["POST"]),
     Route("/api/coverage", coverage), Route("/api/usage", usage), Route("/api/history", history),
+    Route("/api/llm/config", llm_config, methods=["GET", "PUT", "DELETE"]),
+    Route("/api/llm/key", llm_key, methods=["POST"]), Route("/api/llm/test", llm_test, methods=["POST"]),
     Route("/api/diagnostics", diagnostics, methods=["GET", "POST"]),
     Route("/api/library", library),
     Route("/api/proposals", proposals), Route("/api/proposals/{pid}/accept", proposals, methods=["POST"]),

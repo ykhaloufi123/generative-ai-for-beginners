@@ -214,7 +214,7 @@ class ToolsmithAgent:
                "\n\nTemplates existants :\n" + "\n".join(f"- {t.id}: {t.mti} {t.description}"
                                                          for t in self.ref.templates.values())
         try:
-            r = self.router.structured("scenario_design", TOOLSMITH_SYSTEM, user, MessageTemplate.model_json_schema(),
+            r = self.router.structured("template_proposal", TOOLSMITH_SYSTEM, user, MessageTemplate.model_json_schema(),
                                        "proposer_template", validate)
         except (LlmUnavailable, BudgetExceeded):
             return None

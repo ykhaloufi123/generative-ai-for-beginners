@@ -1,30 +1,67 @@
-# Routeur LLM. Les tâches sont routées vers le modèle le moins cher capable de les faire ;
+# Routeur LLM multi-fournisseurs. Chaque tâche démarre sur le niveau le moins cher capable de la faire ;
 # escalade vers le niveau supérieur seulement après des échecs de validation.
+# Modifiable aussi depuis l'interface (onglet « IA ») : la version enregistrée là-bas est écrite dans
+# data/llm_config.yaml et prend le pas sur ce fichier.
 enabled: true                 # false = mode 100 % déterministe (heuristiques seulement)
-provider: anthropic           # anthropic | openai_compatible (vLLM, Ollama, LiteLLM proxy, modèle interne)
-api_key_env: ANTHROPIC_API_KEY
-base_url: https://api.anthropic.com
-# Pour un modèle hébergé en interne (souveraineté des données) :
-# provider: openai_compatible
-# base_url: http://llm.interne:8000/v1
-# api_key_env: INTERNAL_LLM_KEY
 
-tiers:                        # identifiants de modèles à ajuster selon votre compte / fournisseur
-  light: claude-haiku-5-5
-  medium: claude-sonnet-5-5
-  heavy: claude-opus-5-5
+# Fournisseurs disponibles. type : anthropic | openai_compatible (OpenAI, Mistral, Groq, GitHub Models,
+# vLLM, Ollama, LiteLLM, modèle interne...). La clé est lue dans la variable d'environnement api_key_env,
+# ou saisie dans l'interface. Un fournisseur sans clé est ignoré par le routage (sauf needs_key: false).
+providers:
+  anthropic:
+    type: anthropic
+    base_url: https://api.anthropic.com
+    api_key_env: ANTHROPIC_API_KEY
+  openai:
+    type: openai_compatible
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+  mistral:
+    type: openai_compatible
+    base_url: https://api.mistral.ai/v1
+    api_key_env: MISTRAL_API_KEY
+  groq:
+    type: openai_compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+  github_models:
+    type: openai_compatible
+    base_url: https://models.github.ai/inference
+    api_key_env: GITHUB_TOKEN
+  ollama:                     # modèle local (souveraineté des données), désactivé par défaut
+    type: openai_compatible
+    base_url: http://localhost:11434/v1
+    needs_key: false
+    enabled: false
+
+# Niveaux : liste ordonnée de candidats « fournisseur/modèle ». Le routeur prend le premier dont le
+# fournisseur est configuré, et passe au suivant si l'appel échoue (panne, quota). Identifiants à ajuster.
+tiers:
+  light: [anthropic/claude-haiku-5-5, mistral/mistral-small-latest, openai/gpt-4o-mini]
+  medium: [anthropic/claude-sonnet-5-5, mistral/mistral-large-latest, openai/gpt-4o]
+  heavy: [anthropic/claude-opus-5-5]
 
 routing:                      # tâche -> niveau de départ
   requirement_analysis: light
   scenario_design: medium
   result_diagnosis: medium
   scenario_review: light
+  template_proposal: medium
+
+# Plafond de tokens de sortie par tâche (réponse courte = coût réduit) ; défaut : max_output_tokens.
+max_output_tokens_by_task:
+  requirement_analysis: 2000
+  result_diagnosis: 1500
+  scenario_review: 1000
 
 escalation:
   max_attempts_per_tier: 2    # corrections ciblées avant de monter d'un niveau
   order: [light, medium, heavy]
+  # Demande courte : on commence un niveau plus bas (l'escalade rattrape un éventuel échec).
+  downgrade_small_prompts: true
+  small_prompt_chars: 1000
 
-# Coût par million de tokens (USD) — À RENSEIGNER avec vos tarifs réels pour le tableau de bord.
+# Coût par million de tokens (USD), clé « fournisseur/modèle » ou nom de modèle. À RENSEIGNER.
 pricing:
   claude-haiku-5-5: {input: 0, output: 0, cache_read: 0}
   claude-sonnet-5-5: {input: 0, output: 0, cache_read: 0}

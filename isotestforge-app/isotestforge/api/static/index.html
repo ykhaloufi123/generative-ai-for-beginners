@@ -36,6 +36,9 @@ pre{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid
 .tile{border:1px solid var(--line);border-radius:8px;padding:10px}.tile b{display:block;font-size:20px}
 #toast{position:fixed;bottom:16px;right:16px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;display:none;max-width:420px;z-index:5}
 .wrap{overflow-x:auto}a{color:var(--accent)}
+.check{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:13px}.check input{width:auto}
+td input,td select{min-width:90px}.cand{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:3px 0}
+button.mini{background:none;border:1px solid var(--line);border-radius:6px;padding:3px 8px;color:var(--accent);cursor:pointer;font:inherit;font-size:12px}
 </style>
 </head>
 <body>
@@ -47,6 +50,7 @@ pre{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid
     <button data-s="ref">Référentiel</button>
     <button data-s="tools">Outils</button>
     <button data-s="cov">Couverture &amp; coûts</button>
+    <button data-s="ia">IA</button>
     <button data-s="sim">Simulateur</button>
   </nav>
 </header>
@@ -115,6 +119,43 @@ pre{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid
   <div class="card"><h2>Bibliothèque et propositions</h2><div id="lib"></div></div>
 </section>
 
+<!-- ====================================================== IA -->
+<section id="s-ia">
+  <div class="card"><h2>État de l'IA</h2>
+    <label class="check"><input type="checkbox" id="ia-enabled"> IA activée (sinon : 100 % règles déterministes, aucun token consommé)</label>
+    <div id="ia-status" style="margin-top:10px"></div></div>
+  <div class="card"><h2>Fournisseurs</h2>
+    <p class="muted">La clé est lue dans la variable d'environnement indiquée (recommandé) ou saisie ici. Une clé saisie ici est stockée sur le serveur, n'est jamais réaffichée et peut être perdue lors d'un redéploiement. Un fournisseur sans clé est ignoré par le routage.</p>
+    <div class="wrap"><table id="ia-providers"></table></div>
+    <button class="btn ghost" id="ia-add">Ajouter un fournisseur</button></div>
+  <div class="card"><h2>Niveaux de modèles</h2>
+    <p class="muted">Un candidat par ligne, au format <code>fournisseur/modèle</code>, du préféré au repli. Le routeur prend le premier candidat dont le fournisseur est configuré et passe au suivant en cas de panne ou de quota.</p>
+    <div class="row" id="ia-tiers"></div></div>
+  <div class="card"><h2>Routage par tâche</h2>
+    <p class="muted">Chaque tâche démarre sur le niveau le moins cher capable de la faire ; elle ne monte d'un niveau qu'après des échecs de validation.</p>
+    <div class="wrap"><table id="ia-routing"></table></div></div>
+  <div class="card"><h2>Économie de tokens</h2>
+    <div class="row">
+      <div><label>Tentatives par niveau avant escalade</label><input type="number" min="1" id="ia-attempts"></div>
+      <div><label>Plafond de tokens de sortie (défaut)</label><input type="number" min="50" id="ia-maxout"></div>
+      <div><label>Budget par suite (tokens)</label><input type="number" min="0" id="ia-bsuite"></div>
+      <div><label>Budget par jour (tokens)</label><input type="number" min="0" id="ia-bday"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="ia-downgrade"> Demande courte : commencer un niveau plus bas</label>
+    <div class="row"><div><label>Seuil « demande courte » (caractères)</label><input type="number" min="0" id="ia-small"></div>
+      <div><label>Seuil de similarité du cache sémantique</label><input type="number" step="0.01" min="0.5" max="1" id="ia-sim"></div></div>
+    <label class="check"><input type="checkbox" id="ia-cexact"> Cache exact (une demande identique ne coûte rien)</label>
+    <label class="check"><input type="checkbox" id="ia-csem"> Cache sémantique (demande proche déjà traitée)</label></div>
+  <div class="card"><h2>Tarifs (USD par million de tokens)</h2>
+    <p class="muted">Servent au calcul du coût affiché et aux arbitrages. À renseigner avec les tarifs de chaque fournisseur.</p>
+    <div class="wrap"><table id="ia-pricing"></table></div></div>
+  <div class="card">
+    <button class="btn" id="ia-save">Enregistrer la configuration</button>
+    <button class="btn ghost" id="ia-reset">Revenir au fichier par défaut</button>
+    <pre id="ia-errors" style="margin-top:10px;display:none"></pre></div>
+  <div class="card"><h2>Consommation par tâche et modèle</h2><div id="ia-usage"></div></div>
+</section>
+
 <!-- ====================================================== SIMULATEUR -->
 <section id="s-sim">
   <div class="card"><h2>Simulateur hôte intégré</h2>
@@ -140,7 +181,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => show(b.d
 function show(s) {
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.s===s));
   document.querySelectorAll('section').forEach(x => x.classList.toggle('on', x.id==='s-'+s));
-  ({wfs:loadWfs, ref:loadRef, cov:loadCov, sim:simStatus})[s]?.();
+  ({wfs:loadWfs, ref:loadRef, cov:loadCov, ia:loadIa, sim:simStatus})[s]?.();
 }
 let REF = null;
 async function loadRef() {
@@ -249,6 +290,103 @@ async function loadCov() {
     `<h3>Corrections apprises (${l.corrections.length})</h3><h3>Templates proposés par l'Outilleur</h3>` +
     (p.length ? p.map(x=>`<div><pre>${esc(x.content)}</pre>${x.status==='pending'?`<button class="btn" onclick="api('/api/proposals/${x.id}/accept',{json:{}}).then(()=>{toast('Template ajouté');loadCov()})">Accepter</button>`:'<span class="ok">accepté</span>'}</div>`).join('') : '<span class="muted">Aucune</span>');
 }
+// ---------------------------------------------------------------- IA
+let IA = null;
+const num = (id, v) => { const x = $(id).value; return x === '' ? v : Number(x); };
+function iaRender(d) {
+  IA = d; const c = d.config, st = d.status, order = c.escalation?.order || Object.keys(c.tiers);
+  $('#ia-enabled').checked = !!c.enabled;
+  const ready = Object.values(st.providers).filter(p => p.ready).length;
+  $('#ia-status').innerHTML = `<div class="tiles"><div class="tile">IA<b class="${st.available?'ok':'ko'}">${st.available?'active':'inactive'}</b></div>` +
+    `<div class="tile">Fournisseurs prêts<b>${ready} / ${Object.keys(st.providers).length}</b></div>` +
+    `<div class="tile">Configuration<b style="font-size:15px">${esc(st.source)}</b></div></div>` +
+    '<h3>Modèle utilisé en premier par niveau</h3>' + order.map(t => `<div><span class="tag">${esc(t)}</span> ${st.active[t] ? `<code>${esc(st.active[t])}</code>` : '<span class="ko">aucun fournisseur configuré</span>'}</div>`).join('') +
+    (st.available ? '' : '<p class="warn">Aucun candidat utilisable : ajouter une clé à au moins un fournisseur présent dans les niveaux.</p>');
+  $('#ia-providers').innerHTML = '<tr><th>Id</th><th>Type</th><th>URL de base</th><th>Variable de clé</th><th>Clé</th><th>Actif</th><th>Sans clé</th><th></th></tr>' +
+    Object.entries(c.providers).map(([id, p]) => iaProviderRow(id, p, st.providers[id])).join('');
+  $('#ia-tiers').innerHTML = order.map(t => `<div><label>Niveau ${esc(t)}</label><textarea data-tier="${esc(t)}" style="min-height:90px">${esc((c.tiers[t]||[]).join('\n'))}</textarea>` +
+    (c.tiers[t]||[]).map(m => { const pid = m.split('/')[0], ok = st.providers[pid]?.ready;
+      return `<div class="cand"><span class="${ok?'ok':'muted'}">${ok?'✔':'✖'}</span><code>${esc(m)}</code>${ok?`<button class="mini" data-test="${esc(m)}">Tester</button>`:''}</div>`; }).join('') + '</div>').join('');
+  const tasks = {...d.tasks}; Object.keys(c.routing||{}).forEach(k => tasks[k] ??= k);
+  $('#ia-routing').innerHTML = '<tr><th>Tâche</th><th>Niveau de départ</th><th>Plafond tokens de sortie</th></tr>' +
+    Object.entries(tasks).map(([k, label]) => `<tr><td>${esc(label)}<div class="muted"><code>${esc(k)}</code></div></td>` +
+      `<td><select data-route="${esc(k)}">${order.map(t => `<option ${(c.routing||{})[k]===t?'selected':''}>${esc(t)}</option>`).join('')}</select></td>` +
+      `<td><input type="number" min="50" data-maxout="${esc(k)}" placeholder="défaut" value="${esc((c.max_output_tokens_by_task||{})[k] ?? '')}"></td></tr>`).join('');
+  $('#ia-attempts').value = c.escalation?.max_attempts_per_tier ?? 2; $('#ia-maxout').value = c.max_output_tokens ?? 8000;
+  $('#ia-bsuite').value = c.budget?.max_tokens_per_suite ?? ''; $('#ia-bday').value = c.budget?.max_tokens_per_day ?? '';
+  $('#ia-downgrade').checked = !!c.escalation?.downgrade_small_prompts; $('#ia-small').value = c.escalation?.small_prompt_chars ?? 1000;
+  $('#ia-sim').value = c.cache?.semantic_threshold ?? 0.92; $('#ia-cexact').checked = c.cache?.exact !== false; $('#ia-csem').checked = c.cache?.semantic !== false;
+  const models = [...new Set(Object.values(c.tiers).flat())], pr = c.pricing || {};
+  $('#ia-pricing').innerHTML = '<tr><th>Modèle</th><th>Entrée</th><th>Sortie</th><th>Lecture cache</th></tr>' + models.map(m => {
+    const p = pr[m] || pr[m.split('/').slice(1).join('/')] || {};
+    return `<tr data-price="${esc(m)}"><td><code>${esc(m)}</code></td>` + ['input','output','cache_read'].map(f => `<td><input type="number" step="any" min="0" data-f="${f}" value="${esc(p[f] ?? 0)}"></td>`).join('') + '</tr>'; }).join('');
+}
+function iaProviderRow(id, p, s) {
+  s = s || {key_source:'aucune'}; const nw = !IA.config.providers[id];
+  return `<tr data-prov="${esc(id)}"><td>${nw ? `<input data-k="id" value="${esc(id)}">` : `<b>${esc(id)}</b>`}</td>` +
+    `<td><select data-k="type">${['anthropic','openai_compatible'].map(t => `<option ${p.type===t?'selected':''}>${t}</option>`).join('')}</select></td>` +
+    `<td><input data-k="base_url" value="${esc(p.base_url||'')}"></td><td><input data-k="api_key_env" value="${esc(p.api_key_env||'')}"></td>` +
+    `<td><span class="${s.ready?'ok':'muted'}">${s.key_source==='aucune' ? 'aucune' : 'via ' + esc(s.key_source)}</span>` +
+    (nw ? '' : `<div class="cand"><input type="password" autocomplete="off" placeholder="saisir une clé" data-key="${esc(id)}"><button class="mini" data-savekey="${esc(id)}">OK</button>` +
+      (s.key_source==='interface' ? `<button class="mini" data-delkey="${esc(id)}">Effacer</button>` : '') + '</div>') + '</td>' +
+    `<td><input type="checkbox" data-k="enabled" ${p.enabled===false?'':'checked'}></td><td><input type="checkbox" data-k="nokey" ${p.needs_key===false?'checked':''}></td>` +
+    `<td><button class="mini" data-delprov="${esc(id)}">Retirer</button></td></tr>`;
+}
+function iaCollect() {
+  const c = structuredClone(IA.config), order = c.escalation?.order || Object.keys(c.tiers);
+  c.enabled = $('#ia-enabled').checked; c.providers = {};
+  document.querySelectorAll('#ia-providers tr[data-prov]').forEach(tr => {
+    const g = k => tr.querySelector(`[data-k="${k}"]`), id = (g('id')?.value || tr.dataset.prov).trim();
+    if (!id) return;
+    const p = {type: g('type').value, base_url: g('base_url').value.trim()};
+    if (g('api_key_env').value.trim()) p.api_key_env = g('api_key_env').value.trim();
+    if (!g('enabled').checked) p.enabled = false;
+    if (g('nokey').checked) p.needs_key = false;
+    c.providers[id] = p;
+  });
+  c.tiers = {}; document.querySelectorAll('#ia-tiers textarea').forEach(t => c.tiers[t.dataset.tier] = t.value.split('\n').map(x => x.trim()).filter(Boolean));
+  c.routing = {}; document.querySelectorAll('[data-route]').forEach(s => c.routing[s.dataset.route] = s.value);
+  c.max_output_tokens_by_task = {}; document.querySelectorAll('[data-maxout]').forEach(i => { if (i.value) c.max_output_tokens_by_task[i.dataset.maxout] = Number(i.value); });
+  c.escalation = {...c.escalation, order, max_attempts_per_tier: num('#ia-attempts', 2), downgrade_small_prompts: $('#ia-downgrade').checked, small_prompt_chars: num('#ia-small', 1000)};
+  c.max_output_tokens = num('#ia-maxout', 8000);
+  c.budget = {max_tokens_per_suite: num('#ia-bsuite', 200000), max_tokens_per_day: num('#ia-bday', 2000000)};
+  c.cache = {...c.cache, exact: $('#ia-cexact').checked, semantic: $('#ia-csem').checked, semantic_threshold: num('#ia-sim', 0.92)};
+  c.pricing = {}; document.querySelectorAll('#ia-pricing tr[data-price]').forEach(tr => {
+    const v = {}; tr.querySelectorAll('input').forEach(i => v[i.dataset.f] = Number(i.value) || 0); c.pricing[tr.dataset.price] = v; });
+  return c;
+}
+async function loadIa() {
+  try { iaRender(await api('/api/llm/config')); } catch (e) { $('#ia-status').innerHTML = `<p class="ko">${esc(e.message)}</p>`; return; }
+  const u = await api('/api/usage');
+  $('#ia-usage').innerHTML = `<div class="tiles"><div class="tile">Appels<b>${u.calls||0}</b></div><div class="tile">Tokens<b>${u.tokens||0}</b></div><div class="tile">Coût<b>${u.cost_usd||0} $</b></div><div class="tile">Servi par le cache<b>${u.cache_hit_rate||0} %</b></div></div>` +
+    ((u.detail||[]).length ? '<div class="wrap"><table><tr><th>Tâche</th><th>Modèle</th><th>Source</th><th>Appels</th><th>Entrée</th><th>Sortie</th><th>Coût $</th></tr>' +
+      u.detail.map(r => `<tr><td>${esc(r.task)}</td><td><code>${esc(r.model)}</code></td><td>${esc(r.source)}</td><td>${r.calls}</td><td>${r.input||0}</td><td>${r.output||0}</td><td>${r.cost||0}</td></tr>`).join('') + '</table></div>' : '<p class="muted">Aucun appel pour l\'instant.</p>');
+}
+$('#ia-add').onclick = () => {
+  const id = 'nouveau' + (document.querySelectorAll('#ia-providers tr[data-prov]').length + 1);
+  $('#ia-providers').insertAdjacentHTML('beforeend', iaProviderRow(id, {type:'openai_compatible', base_url:'https://', api_key_env:''}, null));
+};
+$('#s-ia').addEventListener('click', e => busyClick(e));
+async function busyClick(e) {
+  const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+  if (d.delprov) { b.closest('tr').remove(); toast('Fournisseur retiré : enregistrer pour confirmer'); return; }
+  if (d.savekey || d.delkey) return busy(b, async () => {
+    const id = d.savekey || d.delkey, key = d.savekey ? document.querySelector(`[data-key="${CSS.escape(id)}"]`).value : '';
+    if (d.savekey && !key) throw new Error('clé vide');
+    await api('/api/llm/key', {json:{provider:id, key}}); toast(key ? `Clé enregistrée pour ${id}` : `Clé effacée pour ${id}`); await loadIa(); });
+  if (d.test) return busy(b, async () => { const r = await api('/api/llm/test', {json:{model:d.test}});
+    toast(`${r.model} : ${r.ok ? 'OK' : 'réponse inattendue'} en ${r.latency_s} s (${r.tokens} tokens)`, 6000); });
+}
+$('#ia-save').onclick = e => busy(e.target, async () => {
+  const r = await fetch('/api/llm/config', {method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({config: iaCollect()})});
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 422) { $('#ia-errors').style.display='block'; $('#ia-errors').textContent = d.errors.join('\n'); throw new Error('configuration invalide'); }
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  $('#ia-errors').style.display='none'; iaRender(d); toast('Configuration IA enregistrée');
+});
+$('#ia-reset').onclick = e => busy(e.target, async () => {
+  if (!confirm('Revenir à config/llm.yaml et abandonner les réglages faits ici ?')) return;
+  iaRender(await api('/api/llm/config', {method:'DELETE'})); toast('Configuration par défaut rétablie'); });
 // ---------------------------------------------------------------- simulateur
 async function simStatus(action) {
   const r = action ? await api('/api/simulator/'+action, {json:{port:$('#sim-port').value}}) : await api('/api/simulator');

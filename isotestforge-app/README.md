@@ -30,7 +30,8 @@ se construit avec `docker compose --profile tools build jmeter`.
 
 Déploiement gratuit (Hugging Face, Render, VM Oracle) et guide de test : voir `DEPLOIEMENT.md`.
 
-Pour activer l'IA : `export ANTHROPIC_API_KEY=...` (ou un modèle interne compatible OpenAI, voir `config/llm.yaml`).
+Pour activer l'IA : onglet **IA** de l'interface (clé par fournisseur, modèles, routage), ou variables
+d'environnement (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `GITHUB_TOKEN`...).
 Sans clé, tout fonctionne en mode règles.
 
 ---
@@ -113,9 +114,12 @@ jmeter -n -t ACQUIRING_POS_V1.jmx -q keys.properties -JITF_HOST=127.0.0.1 -JITF_
 
 ## Maîtrise des coûts IA
 
-`config/llm.yaml` : routage par tâche (léger / moyen / lourd), correction ciblée puis escalade, cache exact et
-sémantique, cache de prompt sur le préfixe système, API batch pour les générations nocturnes, plafonds par suite
-et par jour. `itf usage` et l'onglet « Couverture & coûts » donnent les tokens, le coût et la part traitée sans IA.
+`config/llm.yaml` (modifiable dans l'onglet **IA**, enregistré dans `data/llm_config.yaml`) : plusieurs
+fournisseurs (Anthropic et tout fournisseur compatible OpenAI : OpenAI, Mistral, Groq, GitHub Models, Ollama, vLLM),
+niveaux léger / moyen / lourd composés de candidats `fournisseur/modèle` avec repli automatique en cas de panne ou
+de quota, routage par tâche, demande courte démarrée un niveau plus bas, plafond de tokens de sortie par tâche,
+correction ciblée puis escalade, cache exact et sémantique, cache de prompt sur le préfixe système, API batch pour
+les générations nocturnes, plafonds par suite et par jour. `itf usage` et l'onglet « Couverture & coûts » donnent les tokens, le coût et la part traitée sans IA.
 Les tarifs sont à renseigner dans `pricing` pour un coût exact.
 
 ## Sécurité
@@ -123,7 +127,7 @@ Les tarifs sont à renseigner dans `pricing` pour un coût exact.
 - PAN refusés hors des plages de `bin_whitelist.yaml` ; traces importées remappées sur des cartes de test.
 - Filtre avant LLM (PAN, piste, clés, PIN blocks masqués) ; le LLM ne voit que des identifiants de profils.
 - Clés de test uniquement, `env:` / `vault:` supportés ; `keys.properties` exclu de git.
-- Fournisseur LLM interne possible (`provider: openai_compatible`) pour la souveraineté des données.
+- Fournisseur LLM interne possible (fournisseur `type: openai_compatible`, par ex. Ollama) pour la souveraineté des données.
 
 ## Commandes
 
