@@ -61,11 +61,17 @@ escalation:
   downgrade_small_prompts: true
   small_prompt_chars: 1000
 
-# Coût par million de tokens (USD), clé « fournisseur/modèle » ou nom de modèle. À RENSEIGNER.
+# Coût par million de tokens (USD), clé « fournisseur/modèle » ou nom de modèle.
+# Tarifs publics standard relevés en octobre 2026 (hors batch, priorité, mode rapide) : à revérifier
+# périodiquement sur les pages tarifs des fournisseurs. cache_read = lecture du cache de prompt.
 pricing:
-  claude-haiku-5-5: {input: 0, output: 0, cache_read: 0}
-  claude-sonnet-5-5: {input: 0, output: 0, cache_read: 0}
-  claude-opus-5-5: {input: 0, output: 0, cache_read: 0}
+  anthropic/claude-haiku-5-5: {input: 0.10, output: 0.50, cache_read: 0.01}     # jusqu'à 100K tokens d'entrée
+  anthropic/claude-sonnet-5-5: {input: 2.00, output: 10.00, cache_read: 0.20}
+  anthropic/claude-opus-5-5: {input: 4.00, output: 20.00, cache_read: 0.20}
+  openai/gpt-4o-mini: {input: 0.15, output: 0.60, cache_read: 0.075}
+  openai/gpt-4o: {input: 2.50, output: 10.00, cache_read: 1.25}
+  mistral/mistral-small-latest: {input: 0.15, output: 0.60, cache_read: 0}       # Mistral Small 4
+  mistral/mistral-large-latest: {input: 0.50, output: 1.50, cache_read: 0}       # Mistral Large 3, à confirmer
 
 budget:
   max_tokens_per_suite: 200000
